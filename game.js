@@ -536,9 +536,35 @@
     if (left > maxX) left = Math.max(pad,  r.left - step);
     if (top  < pad)  top  = Math.min(maxY, r.top  + step);
     if (top  > maxY) top  = Math.max(pad,  r.top  - step);
-    btnPass.style.left = Math.min(Math.max(pad, left), maxX) + "px";
-    btnPass.style.top  = Math.min(Math.max(pad, top),  maxY) + "px";
+    left = Math.min(Math.max(pad, left), maxX);
+    top  = Math.min(Math.max(pad, top),  maxY);
+    // PASS may never land on RETRY, otherwise a tap meant for RETRY hits PASS
+    [left, top] = keepOffRetry(left, top, r.width, r.height, maxX, maxY);
+    btnPass.style.left = left + "px";
+    btnPass.style.top  = top + "px";
     sfx("type");
+  }
+  // nudge a candidate PASS position so its box never overlaps the RETRY button
+  function keepOffRetry(left, top, w, h, maxX, maxY) {
+    const rr = btnRetry.getBoundingClientRect();
+    const m = 14; // minimum gap to keep from RETRY
+    const hits = (l, t) =>
+      l < rr.right + m && l + w > rr.left - m && t < rr.bottom + m && t + h > rr.top - m;
+    if (!hits(left, top)) return [left, top];
+    const clamp = (l, t) => [Math.min(Math.max(12, l), maxX), Math.min(Math.max(12, t), maxY)];
+    for (const [l, t] of [
+      [rr.right + m, top],        // right of RETRY
+      [rr.left - m - w, top],     // left of RETRY
+      [left, rr.bottom + m],      // below RETRY
+      [left, rr.top - m - h],     // above RETRY
+    ]) {
+      const [cl, ct] = clamp(l, t);
+      if (!hits(cl, ct)) return [cl, ct];
+    }
+    // last resort: a corner on the opposite side of the screen from RETRY
+    const farX = (rr.left + rr.width / 2) < window.innerWidth / 2 ? maxX : 12;
+    const farY = (rr.top + rr.height / 2) < window.innerHeight / 2 ? maxY : 12;
+    return [farX, farY];
   }
   function passProximity(e) {
     if (!passArmed) return;
