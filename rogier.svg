@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 44" shape-rendering="crispEdges" width="36" height="44">
+  <!-- ROGIER — confident front-view trainer (original pixel art) -->
+  <ellipse cx="18" cy="42.5" rx="11" ry="1.6" fill="rgba(0,0,0,.18)"/>
+
+  <!-- hair (blonde-brown, swept) -->
+  <rect x="10" y="2"  width="16" height="2" fill="#b8842f"/>
+  <rect x="9"  y="4"  width="18" height="3" fill="#c8923c"/>
+  <rect x="8"  y="6"  width="3"  height="7" fill="#c8923c"/>
+  <rect x="25" y="6"  width="3"  height="7" fill="#b8842f"/>
+  <rect x="11" y="2"  width="7"  height="2" fill="#e0b860"/>
+  <rect x="18" y="3"  width="5"  height="2" fill="#a87422"/>
+  <!-- swept fringe -->
+  <rect x="9"  y="7"  width="5"  height="3" fill="#c8923c"/>
+  <rect x="20" y="7"  width="6"  height="3" fill="#c8923c"/>
+  <rect x="14" y="7"  width="6"  height="2" fill="#a87422"/>
+
+  <!-- face -->
+  <rect x="11" y="8"  width="14" height="11" fill="#f2c594"/>
+  <rect x="11" y="17" width="14" height="2"  fill="#dd9a62"/>
+  <rect x="11" y="9"  width="2"  height="8"  fill="#e6b07a"/>
+  <!-- brows (raised = confident) -->
+  <rect x="12" y="11" width="4"  height="1" fill="#8a5a28"/>
+  <rect x="20" y="10" width="4"  height="1" fill="#8a5a28"/>
+  <!-- eyes -->
+  <rect x="13" y="12" width="2"  height="2" fill="#2a3140"/>
+  <rect x="21" y="12" width="2"  height="2" fill="#2a3140"/>
+  <rect x="14" y="12" width="1"  height="1" fill="#fff"/>
+  <rect x="22" y="12" width="1"  height="1" fill="#fff"/>
+  <!-- nose hint + smirk -->
+  <rect x="17" y="14" width="1"  height="2" fill="#dd9a62"/>
+  <rect x="15" y="16" width="5"  height="1" fill="#a8603a"/>
+  <rect x="19" y="15" width="1"  height="1" fill="#a8603a"/>
+
+  <!-- neck -->
+  <rect x="15" y="19" width="5"  height="2" fill="#e2b078"/>
+
+  <!-- jacket (stylish blue, layered) -->
+  <rect x="8"  y="21" width="19" height="15" fill="#345a86"/>
+  <rect x="8"  y="21" width="19" height="2"  fill="#4a74a2"/>
+  <rect x="8"  y="33" width="19" height="3"  fill="#264462"/>
+  <!-- collar -->
+  <rect x="12" y="21" width="2"  height="4" fill="#22405e"/>
+  <rect x="21" y="21" width="2"  height="4" fill="#22405e"/>
+  <!-- white shirt V -->
+  <rect x="15" y="21" width="5"  height="7" fill="#f4f4f4"/>
+  <rect x="16" y="21" width="3"  height="10" fill="#f4f4f4"/>
+  <rect x="17" y="22" width="1"  height="12" fill="#cfd6df"/>
+  <!-- jacket highlight + shade -->
+  <rect x="9"  y="23" width="2"  height="9"  fill="#4070a0"/>
+  <rect x="24" y="23" width="2"  height="9"  fill="#264462"/>
+
+  <!-- arms / hands -->
+  <rect x="6"  y="22" width="2"  height="11" fill="#345a86"/>
+  <rect x="27" y="22" width="2"  height="11" fill="#345a86"/>
+  <rect x="6"  y="32" width="3"  height="3"  fill="#f2c594"/>
+  <rect x="26" y="32" width="3"  height="3"  fill="#f2c594"/>
+
+  <!-- pants -->
+  <rect x="11" y="36" width="14" height="5" fill="#2a3340"/>
+  <rect x="17" y="36" width="2"  height="5" fill="#1f2630"/>
+  <!-- shoes -->
+  <rect x="10" y="41" width="6"  height="2" fill="#15191f"/>
+  <rect x="20" y="41" width="6"  height="2" fill="#15191f"/>
+  <rect x="10" y="41" width="6"  height="1" fill="#3a4150"/>
+  <rect x="20" y="41" width="6"  height="1" fill="#3a4150"/>
+</svg>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b3d2e" />
+  <title>A Wild Match?! · ROGIER Studios</title>
+  <meta name="description" content="A wild ROGIER appeared! A tiny retro battle to see if you two are a match." />
+
+  <!-- Link preview for sharing on dating apps / socials -->
+  <meta property="og:title" content="A WILD MATCH?!" />
+  <meta property="og:description" content="A wild ROGIER appeared! Can you catch him? Tap to battle." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <!-- Mute / unmute (chiptune SFX are generated on first tap, never autoplay) -->
+  <button id="sound-toggle" class="sound-toggle" aria-label="Toggle sound" title="Sound on/off">♪</button>
+
+  <main class="device" role="application" aria-label="Retro match battle game">
+    <div class="screen" id="screen">
+
+      <!-- ===================== STATE 1: TITLE ===================== -->
+      <section class="state state--title is-active" id="state-title" aria-hidden="false">
+        <p class="title__studio">★ ROGIER STUDIOS 2026 ★</p>
+
+        <div class="title__art" aria-hidden="true">
+          <div class="title__ball"><span class="title__ball-btn"></span></div>
+        </div>
+
+        <div class="title__logo">
+          <span class="title__logo-top">A WILD</span>
+          <span class="title__logo-big">MATCH<span class="title__bang">?!</span></span>
+        </div>
+
+        <button class="btn btn--start" id="btn-start">START</button>
+        <p class="title__hint">▼ PRESS START</p>
+        <p class="title__credit">a game for <span id="title-name">you</span></p>
+      </section>
+
+      <!-- ===================== STATE 2: BATTLE ===================== -->
+      <section class="state state--battle" id="state-battle" aria-hidden="true">
+        <div class="battlefield" id="battlefield">
+          <div class="bg-sky"></div>
+          <div class="bg-trees" aria-hidden="true"></div>
+          <div class="bg-grass"></div>
+
+          <!-- Opponent: Wild ROGIER (top-right, front view) -->
+          <div class="status status--foe" id="status-foe">
+            <div class="status__top">
+              <span class="status__name">ROGIER</span>
+              <span class="status__gender status__gender--m">♂</span>
+              <span class="status__lvl">Lv200</span>
+            </div>
+            <div class="status__bar">
+              <span class="status__hplabel">HP</span>
+              <div class="hpbar__track"><div class="hpbar__fill" id="hp-foe"></div></div>
+            </div>
+          </div>
+
+          <div class="platform platform--foe"></div>
+          <div class="sprite sprite--foe" id="sprite-foe" aria-hidden="true"></div>
+
+          <!-- Player (bottom-left, back view) -->
+          <div class="sprite sprite--player" id="sprite-player" aria-hidden="true"></div>
+          <div class="platform platform--player"></div>
+
+          <div class="status status--player" id="status-player">
+            <div class="status__top">
+              <span class="status__name" id="player-name-box">TRAINER</span>
+              <span class="status__gender status__gender--f">♀</span>
+              <span class="status__lvl">Lv100</span>
+            </div>
+            <div class="status__bar">
+              <span class="status__hplabel">HP</span>
+              <div class="hpbar__track"><div class="hpbar__fill" id="hp-player"></div></div>
+            </div>
+            <div class="status__num"><span id="hp-player-num">999</span>/&#8202;999</div>
+          </div>
+        </div>
+
+        <!-- Dialogue + menu -->
+        <div class="dialogue dialogue--battle" id="dialogue" aria-live="polite">
+          <span id="dialogue-text"></span><span class="dialogue__cursor" id="dialogue-cursor">▼</span>
+        </div>
+
+        <div class="menu" id="menu" aria-hidden="true">
+          <button class="btn btn--action act-match" data-action="match">MATCH</button>
+          <button class="btn btn--action act-ghost" data-action="ghost">GHOST</button>
+          <button class="btn btn--action act-swipe" data-action="swipe">SWIPE LEFT</button>
+          <button class="btn btn--action act-run"   data-action="run">RUN</button>
+        </div>
+      </section>
+
+      <!-- ===================== STATE 3: GAME OVER ===================== -->
+      <section class="state state--over" id="state-over" aria-hidden="true">
+        <p class="over__title">GAME OVER</p>
+        <p class="over__sub">You let a good one slip away...</p>
+        <div class="broken-heart" aria-hidden="true">💔</div>
+        <div class="over__buttons" id="over-buttons">
+          <button class="btn btn--retry" id="btn-retry">RETRY</button>
+          <button class="btn btn--pass" id="btn-pass">PASS</button>
+        </div>
+        <p class="over__hint" id="over-hint">▼ there's only one way out of this</p>
+      </section>
+
+      <!-- ===================== STATE 4: LEVEL UP ===================== -->
+      <section class="state state--levelup" id="state-levelup" aria-hidden="true">
+        <p class="lvl__header" id="lvl-header">LEVELED UP!</p>
+
+        <div class="exp">
+          <span class="exp__label">EXP</span>
+          <div class="exp__track"><div class="exp__fill" id="exp-fill"></div></div>
+        </div>
+        <p class="lvl__lvtext" id="lvl-lvtext">Lv.100 &nbsp;▸&nbsp; Lv.101</p>
+
+        <ul class="lvl__stats" id="lvl-stats"><!-- rows injected by game.js --></ul>
+
+        <div class="skillbox" id="skillbox">
+          <p>✦ NEW SKILL UNLOCKED ✦</p>
+          <p class="skillbox__skill">FIRST DATE</p>
+        </div>
+        <p class="lvl__continue" id="lvl-continue">▼ Tap to continue</p>
+      </section>
+
+      <!-- ===================== STATE 5: FINAL QUEST ===================== -->
+      <section class="state state--quest" id="state-quest" aria-hidden="true">
+        <p class="quest__header" id="quest-header">ROGIER joined your party!</p>
+        <div class="sprite sprite--foe quest__sprite" aria-hidden="true"></div>
+        <div class="questbox">
+          <p class="questbox__title">✦ NEW QUEST UNLOCKED ✦</p>
+          <p class="questbox__line">Next objective:</p>
+          <p class="questbox__obj">&gt; Say hi on Hinge!</p>
+          <p class="questbox__obj">&gt; Tell him you beat his game.</p>
+          <p class="questbox__obj">&gt; Go grab a drink together.</p>
+        </div>
+        <p class="quest__footer">[ TO BE CONTINUED... ]</p>
+        <button class="btn btn--again" id="btn-again">↺ PLAY AGAIN</button>
+      </section>
+
+      <!-- overlays -->
+      <div class="flash" id="flash" aria-hidden="true"></div>
+      <div class="fade" id="fade" aria-hidden="true"></div>
+      <div class="sparkles" id="sparkles" aria-hidden="true"></div>
+      <div class="scanlines" aria-hidden="true"></div>
+    </div>
+  </main>
+
+  <script src="./game.js" defer></script>
+</body>
+</html>
