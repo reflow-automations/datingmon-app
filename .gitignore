@@ -1,0 +1,12 @@
+# Dev tooling (local preview server config)
+.claude/
+
+# Internal handoff notes — kept local, not for the public repo
+HANDOFF.md
+
+# Original full-resolution source art (local backup only).
+# The build uses the cropped + compressed rogier.png / trainer.png.
+Rogier pokemon pixel.png
+Vrouw achterkant pixel.png
+trainer redhead.png
+rogier-v2.svg

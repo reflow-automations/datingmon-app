@@ -188,8 +188,15 @@ body {
 @keyframes soft-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
 
 .title__hint { z-index: 2; font-size: 2.6cqw; color: #a8324f; margin-top: 3cqw; animation: blink 1s steps(2) infinite; }
-.title__credit { z-index: 2; font-size: 2.4cqw; color: #b5476a; margin-top: auto; margin-bottom: 4cqw; }
-#title-name { color: #fff; text-shadow: 1px 1px 0 #c84868; }
+.title__credit {
+  z-index: 2; margin-top: auto; margin-bottom: 5cqw;
+  font-size: 3cqw; color: #fff; letter-spacing: .5px;
+  background: rgba(168, 50, 79, .9);
+  padding: 2cqw 4.5cqw; border-radius: 999px;
+  text-shadow: 1px 1px 0 rgba(0,0,0,.35);
+  box-shadow: 0 2px 0 rgba(122,39,64,.5);
+}
+#title-name { color: #ffe070; text-shadow: 1px 1px 0 #7a2740; }
 
 /* ============================================================
    STATE 2 — BATTLE
@@ -230,6 +237,7 @@ body {
 /* circular battle platforms (Gen-3 ellipses) */
 .platform {
   position: absolute;
+  z-index: 1;
   border-radius: 50%;
   background: radial-gradient(ellipse at 50% 32%, #c3ec9e 0%, #84c66e 52%, #4ea050 100%);
   box-shadow: 0 5px 0 rgba(0,0,0,.16), inset 0 -5px 0 rgba(0,0,0,.12);
@@ -239,12 +247,21 @@ body {
   border-radius: 50%;
   background: repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 4px, transparent 4px 8px);
 }
-.platform--foe    { top: 31%; right: 3%; width: 44%; height: 9%; }
-.platform--player { bottom: 13%; left: 1%; width: 54%; height: 12%; }
+/* soft ground shadow cast by each character */
+.platform::before {
+  content: ""; position: absolute;
+  left: 50%; top: 44%; transform: translate(-50%, -50%);
+  width: 64%; height: 58%; border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.32) 0%, rgba(0,0,0,.17) 46%, rgba(0,0,0,0) 72%);
+  pointer-events: none;
+}
+.platform--foe    { top: 52%; right: 3%; width: 38%; height: 8%; }
+.platform--player { bottom: 0%; left: 1%; width: 32%; height: 11%; }
 
 /* ----- sprites ----- */
 .sprite {
   position: absolute;
+  z-index: 2;
   background-repeat: no-repeat;
   background-position: center bottom;
   background-size: contain;
@@ -252,15 +269,15 @@ body {
   filter: drop-shadow(0 3px 0 rgba(0,0,0,.12));
 }
 .sprite--foe {
-  top: 14%; right: 7%;
-  width: 35%; aspect-ratio: 1/1.25;
-  background-image: url("./rogier.svg");
+  top: 20%; right: 8%;
+  width: 26%; aspect-ratio: 713/1345;
+  background-image: url("./rogier.png");
   animation: foe-idle 2.4s ease-in-out infinite;
 }
 .sprite--player {
-  bottom: 12%; left: 4%;
-  width: 42%; aspect-ratio: 1/1.1;
-  background-image: url("./trainer.svg");
+  bottom: 7%; left: 6%;
+  width: 22%; aspect-ratio: 398/1173;
+  background-image: url("./trainer.png");
   animation: player-idle 3s ease-in-out infinite;
 }
 @keyframes foe-idle    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3%)} }
@@ -276,12 +293,14 @@ body {
 .sprite--foe.is-hit  { animation: shake-x .4s linear 2; }
 .sprite--foe.is-faint{ animation: faint-fall .8s ease-in forwards; }
 .sprite--foe.is-happy{ animation: happy-jump .5s ease-in-out 4; }
+.sprite--foe.is-attacking{ animation: foe-attack .45s ease-in-out; }
 .sprite--player.is-hit   { animation: shake-x .35s linear 2; }
 .sprite--player.is-faint { animation: faint-fall .9s ease-in forwards; }
 
 @keyframes shake-x { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7%)} 75%{transform:translateX(7%)} }
 @keyframes happy-jump { 0%,100%{transform:translateY(0)} 40%{transform:translateY(-18%)} 70%{transform:translateY(0)} }
 @keyframes faint-fall { to { transform: translateY(70%) rotate(10deg); opacity: 0; } }
+@keyframes foe-attack { 0%,100%{transform:translate(0,0)} 45%{transform:translate(-14%,6%) scale(1.04)} }
 
 /* ----- status / HP boxes (Gen-3 style) ----- */
 .status {
@@ -297,7 +316,7 @@ body {
 
 .status__top { display: flex; align-items: baseline; gap: 1.6cqw; }
 .status__name { font-size: 3cqw; letter-spacing: .5px; }
-.status__gender { font-size: 2.6cqw; }
+.status__gender { font-size: 7cqw; line-height: 1; }
 .status__gender--m { color: #4a90d9; }
 .status__gender--f { color: #e0608c; }
 .status__lvl  { font-size: 2.6cqw; margin-left: auto; }
@@ -467,13 +486,14 @@ body {
 .quest__header { font-size: 4.4cqw; color: #ffe070; line-height: 1.6; animation: pop-in .4s ease both; }
 .quest__sprite { position: static; width: 24%; aspect-ratio: 1/1.25; animation: happy-jump 1.2s ease-in-out infinite; }
 .questbox {
-  width: 90%; border: var(--px) solid #fff; border-radius: 10px; padding: 4.5cqw;
-  background: rgba(0,0,0,.28); text-align: left;
+  width: 92%; border: var(--px) solid #fff; border-radius: 10px; padding: 5cqw 5cqw 4cqw;
+  background: rgba(0,0,0,.42); text-align: left;
   box-shadow: inset 0 0 0 2px rgba(255,255,255,.3);
 }
-.questbox__title { text-align: center; font-size: 3cqw; color: #ffe070; margin-bottom: 3cqw; }
-.questbox__line  { font-size: 2.8cqw; margin-bottom: 2.4cqw; color: #cfc0ff; }
-.questbox__obj   { font-size: 3cqw; line-height: 2.1; }
+.questbox__title { text-align: center; font-size: 3.2cqw; color: #ffe070; margin-bottom: 4cqw; letter-spacing: .5px; }
+.questbox__line  { font-size: 3cqw; margin-bottom: 3.2cqw; color: #e6dcff; }
+.questbox__obj   { font-size: 3.4cqw; line-height: 1.7; margin-bottom: 2.6cqw; color: #fff; text-shadow: 1px 1px 0 rgba(0,0,0,.45); }
+.questbox__obj:last-child { margin-bottom: 0; }
 .quest__footer { font-size: 3cqw; color: #ffb0d0; animation: blink 1.2s steps(2) infinite; }
 .btn--again { background: rgba(255,255,255,.12); font-size: 2.8cqw; padding: 2.8cqw 6cqw; border-color: rgba(255,255,255,.4); }
 

@@ -65,13 +65,19 @@
 
   /* ---------- 2. AUDIO (chiptune, generated, never autoplay) ---------- */
   let actx = null;
+  let master = null;            // master gain — lets us kill ALL scheduled sound at once
   let muted = localStorage.getItem("rs_muted") === "1";
   soundToggle.classList.toggle("is-muted", muted);
 
   function ensureAudio() {
     if (!actx) {
       const AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) actx = new AC();
+      if (AC) {
+        actx = new AC();
+        master = actx.createGain();
+        master.gain.value = muted ? 0 : 1;
+        master.connect(actx.destination);
+      }
     }
     if (actx && actx.state === "suspended") actx.resume();
   }
@@ -84,7 +90,7 @@
     g.gain.setValueAtTime(0.0001, at);
     g.gain.exponentialRampToValueAtTime(vol, at + 0.012);
     g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-    o.connect(g).connect(actx.destination);
+    o.connect(g).connect(master || actx.destination);
     o.start(at); o.stop(at + dur + 0.02);
   }
   function tone(freq, dur, type = "square", vol = 0.04, when = 0) {
@@ -107,6 +113,30 @@
     if (muted) return;
     ensureAudio();
     (notes || [523, 659, 784, 1047, 1319]).forEach((f, i) => tone(f, 0.16, "square", 0.05, i * 0.11));
+  }
+  // Cheerful original victory fanfare (C-major) — plays when she wins.
+  function playVictory() {
+    if (muted) return;
+    ensureAudio();
+    if (!actx) return;
+    const t = actx.currentTime + 0.05;
+    const s = 0.15;                       // beat length
+    // [freq, startBeat, lengthBeats]
+    const song = [
+      [784, 0, 0.5], [784, 0.5, 0.5], [784, 1, 0.5],   // G G G  pickup
+      [1047, 1.5, 1.5],                                // C
+      [1319, 3, 1],                                    // E
+      [1568, 4, 1.5],                                  // G  (peak)
+      [1319, 5.5, 0.5], [1568, 6, 0.5],                // E G
+      [2093, 6.5, 2],                                  // high C finish
+    ];
+    song.forEach(([f, b, d]) => {
+      noteAt(f, s * d * 1.5, "square", 0.05, t + b * s);          // lead
+      noteAt(f / 2, s * d * 1.5, "triangle", 0.045, t + b * s);   // octave-down warmth
+    });
+    // sparkly arpeggio tail
+    [1047, 1319, 1568, 2093].forEach((f, i) =>
+      noteAt(f, 0.11, "square", 0.035, t + (8.5 + i * 0.45) * s));
   }
 
   /* ----- looping chiptune battle theme (original composition) ----- */
@@ -155,8 +185,24 @@
     muted = !muted;
     localStorage.setItem("rs_muted", muted ? "1" : "0");
     soundToggle.classList.toggle("is-muted", muted);
-    if (muted) { stopMusic(); }
-    else { ensureAudio(); tone(880, 0.08); if (states.battle.classList.contains("is-active")) startMusic(); }
+    if (muted) {
+      stopMusic();
+      if (actx && master) {                 // silence everything already scheduled, instantly
+        const now = actx.currentTime;
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(master.gain.value, now);
+        master.gain.linearRampToValueAtTime(0.0001, now + 0.02);
+      }
+    } else {
+      ensureAudio();
+      if (actx && master) {
+        const now = actx.currentTime;
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(1, now);
+      }
+      tone(880, 0.08);
+      if (states.battle.classList.contains("is-active")) startMusic();
+    }
   });
 
   /* ---------- State switching ---------- */
@@ -223,6 +269,13 @@
     if (hard) shake();
     sfx("hit");
   }
+  // ROGIER lunges forward when he lands one of his dating "moves"
+  function foeAttack() {
+    spriteFoe.classList.remove("is-attacking");
+    void spriteFoe.offsetWidth;
+    spriteFoe.classList.add("is-attacking");
+    setTimeout(() => spriteFoe.classList.remove("is-attacking"), 480);
+  }
 
   /* ---------- Typewriter + tap-to-advance ---------- */
   let typing = false, skip = false, tapResolver = null;
@@ -253,6 +306,15 @@
   let wrongCount = 0;
   let matchHits = 0;             // MATCH lands the 1st hit, then FLIRT x2 to win
   const MATCH_TOTAL = 3;
+  const usedWrong = new Set();   // which of GHOST / RUN / SWIPE LEFT she has tried
+  let nudgeIdx = 0;              // cycles the "pick the pink button" hints
+
+  // The wrong buttons only turn timid (and MATCH ramps up) once she's clearly
+  // stalling: after all three wrong moves have been tried, OR after 3 moves.
+  function pressureActive() {
+    return wrongCount >= 3 ||
+      (usedWrong.has("ghost") && usedWrong.has("run") && usedWrong.has("swipe"));
+  }
 
   function showMenu() {
     menu.classList.add("is-shown");
@@ -267,19 +329,22 @@
   function resetPressure() {
     wrongCount = 0;
     matchHits = 0;
+    nudgeIdx = 0;
+    usedWrong.clear();
     btnMatch.textContent = "MATCH";
     actionBtns.forEach((b) => b.classList.remove("timid", "timid-2", "timid-3"));
     btnMatch.classList.remove("glow-2", "glow-3");
     btnMatch.classList.add("glow-1");
   }
   function applyPressure() {
-    btnMatch.classList.toggle("glow-2", wrongCount >= 2);
-    btnMatch.classList.toggle("glow-3", wrongCount >= 4);
+    const active = pressureActive();
+    btnMatch.classList.toggle("glow-2", active);
+    btnMatch.classList.toggle("glow-3", active && wrongCount >= 5);
     [".act-ghost", ".act-run", ".act-swipe"].forEach((sel) => {
       const b = $(sel);
-      b.classList.toggle("timid", wrongCount >= 1);
-      b.classList.toggle("timid-2", wrongCount >= 3);
-      b.classList.toggle("timid-3", wrongCount >= 5);
+      b.classList.toggle("timid", active);
+      b.classList.toggle("timid-2", active && wrongCount >= 5);
+      b.classList.toggle("timid-3", active && wrongCount >= 7);
     });
   }
   menu.addEventListener("click", (e) => {
@@ -288,24 +353,50 @@
     handleAction(btn.dataset.action);
   });
 
-  /* ---------- Dialogue banks (cycle so repeats stay funny) ---------- */
+  /* ---------- Dialogue banks ----------
+     Turn-based, Pokémon-style. Her GHOST / RUN / SWIPE LEFT do NOTHING to
+     ROGIER (his HP never moves); then ROGIER answers with a dating "move"
+     that chips away at HER HP. Banks cycle so repeats stay funny.        */
   const ghostLines = [
-    [NAME + " tried to walk away...", "But ROGIER sent a double text! It's super effective!"],
-    [NAME + " tried to ghost again...", "ROGIER replied to your story with a 😍. Critical hit!"],
-    [NAME + " committed to the ghosting...", "But ROGIER showed up with oat-milk coffee. You're cornered!"],
-    [NAME + ", we both know you're stalling.", "ROGIER liked all six of your photos. Resistance is futile!"],
+    [NAME + " tried to GHOST... but it had no effect on Wild ROGIER!",
+     "Wild ROGIER used DOUBLE TEXT! It's super effective! 💬"],
+    [NAME + " went quiet on read... ROGIER stayed unbothered!",
+     "Wild ROGIER used STORY REPLY! He left a 😍 on your story. Critical hit!"],
+    [NAME + " ghosted even harder... ROGIER's vibe is unshakeable!",
+     "Wild ROGIER used OAT-MILK COFFEE! Hand-delivered. It's super effective!"],
+    [NAME + " tried the slow fade... it failed against Wild ROGIER!",
+     "Wild ROGIER used GOODNIGHT TEXT! It hit " + NAME + " right in the feels. 💘"],
   ];
   const runLines = [
-    [NAME + " looked for an exit...", "Error 404: Escape route not found. You can't run from destiny!"],
-    [NAME + " sprinted toward the door...", "It was a wall painted like a door. Nice try!"],
-    [NAME + " tried to RUN again...", "ROGIER is faster, funnier, and already saved you a seat."],
-    [NAME + ", the RUN button is exhausted.", "Fast-travel disabled by destiny. Stay a while!"],
+    [NAME + " tried to RUN... but there's no escaping destiny!",
+     "Wild ROGIER used CHARM! He saved you a seat and a smile. 💫"],
+    [NAME + " sprinted for the door... it was a wall painted like one!",
+     "Wild ROGIER used DAD JOKE! So bad it's super effective!"],
+    [NAME + " looked for an exit... Error 404, no effect on ROGIER!",
+     "Wild ROGIER used GENUINE COMPLIMENT! " + NAME + " is flustered. 💗"],
+    [NAME + " tried to fast-travel away... destiny disabled it!",
+     "Wild ROGIER used WALK YOU HOME! It's super effective!"],
   ];
   const swipeLines = [
-    [NAME + " used SWIPE LEFT.", "ROGIER's heart cracks... but he's built different. He bounces back!"],
-    [NAME + " swiped left, harshly.", "Ouch. ROGIER took that one personally. (It's not over.)"],
-    [NAME + " swiped left AGAIN?!", "ROGIER respects the consistency. Still here though."],
-    [NAME + " keeps swiping left.", "Each swipe costs you energy. ROGIER costs you nothing."],
+    [NAME + " used SWIPE LEFT! ...ROGIER is built different. It bounced off!",
+     "Wild ROGIER used REMEMBERED YOUR ORDER! Massive emotional damage. 💞"],
+    [NAME + " swiped left, harshly... ROGIER didn't take it personally!",
+     "Wild ROGIER used HANDWRITTEN NOTE! A direct hit to the heart!"],
+    [NAME + " swiped left AGAIN?! ...no effect. ROGIER respects the grind.",
+     "Wild ROGIER used COOKED YOU DINNER! It's super effective! 🍝"],
+    [NAME + " keeps swiping left... but it can't land on Wild ROGIER!",
+     "Wild ROGIER used MORNING TEXT! 'thinking of you ☕'. Critical hit!"],
+  ];
+  // Cycled so the player never sees the exact same nudge twice in a row
+  // {btn} is swapped for the pink button's CURRENT label (MATCH, then FLIRT)
+  // so the hint never tells her to press a button that no longer exists.
+  const nudgeLines = [
+    "Psst... that glowing PINK button is right there. ♡",
+    "Hint: nothing else lands on him. {btn} is the move. 💘",
+    "You already know. The pink one, {btn}. He's right there. 😉",
+    "GHOST, RUN, SWIPE... none of it works. Try {btn}. ✨",
+    "Destiny is tapping its foot. Hit {btn}. Let's go. ♥",
+    "Spoiler: this only ends one way, and it's pink. 💕",
   ];
   // MATCH lands the first hit, then it becomes FLIRT for the finishers
   const flirtLines = [
@@ -314,6 +405,7 @@
     [NAME + " used FLIRT!", "CRITICAL HIT! Sparks are flying everywhere! ✨"],
   ];
   const pick = (bank, i) => bank[Math.min(i, bank.length - 1)];
+  const cyc  = (bank, i) => bank[((i % bank.length) + bank.length) % bank.length];
 
   /* ---------- 3. Battle start + intro ---------- */
   async function enterBattle(introText) {
@@ -340,8 +432,8 @@
     ]);
   }
   async function promptAction() {
-    if (wrongCount >= 3) {
-      await say("Psst... the glowing PINK button is right there. Just saying. ♡");
+    if (pressureActive()) {
+      await say(cyc(nudgeLines, nudgeIdx++).replace("{btn}", btnMatch.textContent));
     }
     await say("What will " + NAME + " do?");
     enableMenu();
@@ -354,15 +446,18 @@
     disableMenu();
     if (action === "match") { sfx("select"); await branchFlirt(); return; }
     sfx("deny");
-    if (action === "ghost") await wrongMove(pick(ghostLines, wrongCount), rand(150, 180), false);
-    if (action === "run")   await wrongMove(pick(runLines,   wrongCount), rand(110, 140), false);
-    if (action === "swipe") await wrongMove(pick(swipeLines, wrongCount), rand(190, 230), true);
+    usedWrong.add(action);
+    // Balanced so ~6 of ROGIER's counter-moves finish her (999 HP / ~170 ≈ 6).
+    if (action === "ghost") await wrongMove(cyc(ghostLines, wrongCount), rand(160, 185), false);
+    if (action === "run")   await wrongMove(cyc(runLines,   wrongCount), rand(160, 185), false);
+    if (action === "swipe") await wrongMove(cyc(swipeLines, wrongCount), rand(180, 205), true);
   }
 
   async function wrongMove(lines, dmg, hard) {
-    await say(lines[0]);
+    await say(lines[0]);          // her move bounces off ROGIER (his HP never drops)
+    foeAttack();                  // ROGIER answers with a dating move...
     await say(lines[1]);
-    hurtPlayer(dmg, hard);
+    hurtPlayer(dmg, hard);        // ...and it's HER HP that takes the hit
     await sleep(650);
     if (playerHP <= 0) { await faintSequence(); return; }
     wrongCount++;
@@ -403,7 +498,7 @@
 
     if (final) {
       stopMusic();
-      jingle([659, 784, 988, 1319, 1568]);
+      playVictory();
       await sleep(900);
       await say("Wild ROGIER was successfully caught! ♥");
       await fadeOut();
@@ -418,25 +513,41 @@
 
   /* ---------- 5a. GAME OVER — the fleeing PASS button ---------- */
   let passArmed = false;
-  function teleportPass() {
-    const pad = 16;
-    const w = btnPass.offsetWidth || 120;
-    const h = btnPass.offsetHeight || 50;
-    const maxX = Math.max(pad, window.innerWidth - w - pad);
-    const maxY = Math.max(pad, window.innerHeight - h - pad);
+  // She can get VERY close before PASS dodges, and it only scoots a little —
+  // just out of reach, never flying across the screen. Mouse + touch.
+  const PASS_TRIGGER = 24;   // px from the button's edge before it dodges
+  function dodgePass(px, py) {
+    const pad = 12;
+    const r = btnPass.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    let dx = cx - px, dy = cy - py, len = Math.hypot(dx, dy);
+    if (len < 0.01) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; len = Math.hypot(dx, dy) || 1; }
+    const step = Math.min(130, Math.max(60, r.width * 0.8));   // small hop
     btnPass.classList.add("is-roaming");
-    btnPass.style.left = Math.random() * (maxX - pad) + pad + "px";
-    btnPass.style.top  = Math.random() * (maxY - pad) + pad + "px";
+    let left = parseFloat(btnPass.style.left); if (Number.isNaN(left)) left = r.left;
+    let top  = parseFloat(btnPass.style.top);  if (Number.isNaN(top))  top  = r.top;
+    left += (dx / len) * step;
+    top  += (dy / len) * step;
+    const maxX = window.innerWidth  - r.width  - pad;
+    const maxY = window.innerHeight - r.height - pad;
+    // if a hop would leave the screen, bounce off that wall instead
+    if (left < pad)  left = Math.min(maxX, r.left + step);
+    if (left > maxX) left = Math.max(pad,  r.left - step);
+    if (top  < pad)  top  = Math.min(maxY, r.top  + step);
+    if (top  > maxY) top  = Math.max(pad,  r.top  - step);
+    btnPass.style.left = Math.min(Math.max(pad, left), maxX) + "px";
+    btnPass.style.top  = Math.min(Math.max(pad, top),  maxY) + "px";
     sfx("type");
   }
   function passProximity(e) {
     if (!passArmed) return;
     const r = btnPass.getBoundingClientRect();
-    const cx = r.left + r.width / 2;
-    const cy = r.top + r.height / 2;
     const point = e.touches && e.touches[0] ? e.touches[0] : e;
-    const dist = Math.hypot(point.clientX - cx, point.clientY - cy);
-    if (dist < Math.max(r.width, r.height) * 1.1) teleportPass();
+    const px = point.clientX, py = point.clientY;
+    const dx = Math.max(r.left - px, 0, px - r.right);
+    const dy = Math.max(r.top - py, 0, py - r.bottom);
+    if (Math.hypot(dx, dy) < PASS_TRIGGER) dodgePass(px, py);
   }
   function armPass() {
     passArmed = true;
@@ -448,8 +559,8 @@
     btnPass.classList.remove("is-roaming");
     btnPass.style.left = btnPass.style.top = "";
   }
-  btnPass.addEventListener("mouseenter", () => passArmed && teleportPass());
-  btnPass.addEventListener("focus", () => passArmed && teleportPass());
+  btnPass.addEventListener("mouseenter", (e) => { if (passArmed) dodgePass(e.clientX, e.clientY); });
+  btnPass.addEventListener("focus", () => { if (passArmed) { const r = btnPass.getBoundingClientRect(); dodgePass(r.left + r.width / 2, r.top + r.height / 2); } });
   document.addEventListener("mousemove", passProximity);
   document.addEventListener("touchstart", passProximity, { passive: true });
   document.addEventListener("touchmove", passProximity, { passive: true });
@@ -502,11 +613,24 @@
 
     jingle([523, 659, 784, 1047, 1319, 1047, 1319]);
     await sleep(300);
-    expFill.style.width = "100%";                 // EXP fills up
-    for (let i = 0; i < 6; i++) { sfx("level"); await sleep(170); }
-    await sleep(200);
+
+    // She just beat someone DOUBLE her level, so she rockets up many levels.
+    const LV_FROM = 100, LV_TO = 200;
+    lvtext.innerHTML = 'Lv.' + LV_FROM + ' &nbsp;▸&nbsp; Lv.<b id="lvl-newnum">' + LV_FROM + '</b>';
     lvtext.classList.add("is-shown"); sfx("select");
-    await sleep(500);
+    const newNum = $("#lvl-newnum");
+    let lv = LV_FROM;
+    while (lv < LV_TO) {
+      // each sweep: refill the EXP bar + tick several levels at once
+      expFill.style.transition = "none"; expFill.style.width = "0%"; void expFill.offsetWidth;
+      expFill.style.transition = "width .16s linear"; expFill.style.width = "100%";
+      lv = Math.min(LV_TO, lv + (reduced ? LV_TO : 10));
+      newNum.textContent = lv;
+      sfx("level");
+      await sleep(reduced ? 20 : 150);
+    }
+    expFill.style.transition = "";
+    await sleep(450);
 
     for (const [name, from, to, max] of STATS) {
       const li = document.createElement("li");

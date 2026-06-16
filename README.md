@@ -50,5 +50,5 @@ like `yourdomain.com/Sophie` work. Then add your custom domain in Vercel.
 - `index.html` — markup + all five game states
 - `style.css` — GBA aesthetic, animations, responsive (container-query units)
 - `game.js` — state machine, dialogue, HP, chiptune music + SFX
-- `rogier.svg` / `trainer.svg` — original pixel-art sprites
+- `rogier.png` / `trainer.png` — character sprites (ROGIER and the player)
 - `vercel.json` — SPA-style rewrite for clean `/Name` URLs
