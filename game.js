@@ -470,7 +470,7 @@
     await say(NAME + " is running on empty from dodging love...");
     spritePlayer.classList.add("is-faint");
     sfx("hit");
-    await say(NAME + " fainted!");
+    await say(NAME + " tapped out!");
     await say("Oh no... you almost let a good one slip away.");
     stopMusic();
     await fadeOut();
